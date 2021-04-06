@@ -13,10 +13,12 @@
 
 #include "apriltag_ros/AprilTagDetectionArray.h"
 
-#define DEBUG_VS 1
-#define DEBUG_SEND_GOAL 1
+#include "vision_servoing_utils.h"
 
-typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
+#define DEBUG_VS 1
+
+
+//typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 
 class PoseApriltag
 {
@@ -26,7 +28,8 @@ public:
 	target_frame_("d435_color_optical_frame"),
 	//target_frame_("caato_0/d435_color_optical_frame"),
     tf2_listener_(buffer_),
-    tf2_filter_(apriltag_detect_array_sub_, buffer_, target_frame_, 10, nh_private)
+    tf2_filter_(apriltag_detect_array_sub_, buffer_, target_frame_, 10, nh_private),
+	stagingGoalReached(false)
   {
     ROS_INFO("PoseApriltag.");
     // ros::NodeHandle nh_private("~");
@@ -40,72 +43,6 @@ public:
     nh_private.param("offset_yaw", offset_yaw_, 0.0);
   }
 
-//--------------------------------------------------------------------------------
-bool sendGoal(const geometry_msgs::PoseStamped& nav_goal_pose)
-{
-    MoveBaseClient ac("caato_0/move_base", true);
-
-    ac.cancelAllGoals();
-    move_base_msgs::MoveBaseGoal goal;
-    while (!ac.waitForServer(ros::Duration(5.0)))
-    {
-        ROS_INFO("Waiting for the move_base action server to come up...");
-    }
-
-#if DEBUG_SEND_GOAL
-	ROS_INFO("	[move_base] action server up... ");
-#endif
-
-
-	//goal.target_pose.header.frame_id = "map";
-	goal.target_pose.header.frame_id = nav_goal_pose.header.frame_id;
-	goal.target_pose.header.stamp = ros::Time::now();
-	goal.target_pose = nav_goal_pose;
-
-	// Mod by Tim: Test. MoveBase aborts because goal plan has no solution...
-	//goal.target_pose.pose.position.x = 12.1;
-	//goal.target_pose.pose.position.y = -25.2;
-
-	ROS_INFO(" 	goal pose(x= %.2f y=%.2f) frame_id:%s",
-			goal.target_pose.pose.position.x, goal.target_pose.pose.position.y, goal.target_pose.header.frame_id.c_str());
-	ac.sendGoal(goal);
-	ac.waitForResult();
-	std::string flag_success = "x";
-
-	if (ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-	{
-		ROS_INFO("	Goal success");
-		flag_success = "true";
-		//msg_debug.data = req.wp_name +","+"success";
-		return true;
-	}
-	else
-	{
-		ROS_INFO("	Failed to achieved goal:%s ",  ac.getState().toString().c_str() );
-		flag_success = "false";
-		//msg_debug.data = req.wp_name +","+"fail";
-		return false;
-	}
-	//pub_debug.publish(msg_debug);
-
-	//debug
-
-	/*char buffer[200];
-	snprintf(buffer, sizeof(buffer), "%f,%s,(x= %.2f y=%.2f ), %s \n",
-			 ros::Time::now().toSec(),
-			 wp.waypoints[i].name.c_str(),
-			 goal.target_pose.pose.position.x, goal.target_pose.pose.position.y,
-			 flag_success.c_str());
-
-	std::string line = buffer;
-	std_msgs::String msg;
-	msg.data = line;
-	pub.publish(msg);*/
-
-	ROS_INFO("	sendGoal() - UNKNOWN");
-	return false;
-
-}
 
 //--------------------------------------------------------------------------------
   void apriltagPoseCb(const apriltag_ros::AprilTagDetectionArrayConstPtr& msg)
@@ -113,6 +50,8 @@ bool sendGoal(const geometry_msgs::PoseStamped& nav_goal_pose)
 #if DEBUG_VS
 	  //ROS_INFO("PoseApriltag::apriltagPoseCb() ");
 #endif
+
+    vision_servoing::debugTagMsg(msg, pixelPosRight, pixelPosDown, tagArea);
 
     // Mod by Tim:
 	//const std::string tf_frame_mod = target_frame_;
@@ -122,13 +61,13 @@ bool sendGoal(const geometry_msgs::PoseStamped& nav_goal_pose)
     if (!msg->detections.size())
     {
 #if DEBUG_VS
-	  //ROS_INFO("	msg->detections.size() 0! tf_frame:%s", tf_frame_mod.c_str());
+	  ROS_INFO("	msg->detections.size() 0! tf_frame:%s", tf_frame_mod.c_str());
 #endif
 
 	  // Mod by Tim: reset containers
 	  marker_pose_vec_.clear();
-	  marker_pose_camera_;
-	  marker_pose_map_;
+	  //marker_pose_camera_;
+	  //marker_pose_map_;
       return;
     }
 
@@ -138,57 +77,18 @@ bool sendGoal(const geometry_msgs::PoseStamped& nav_goal_pose)
 
     // Mod by Tim:
     marker_pose_camera_new.header.frame_id = tf_frame_mod;
+    vision_servoing::populateMarker(msg, marker_pose_camera_new);
 
-    marker_pose_camera_new.pose.position.x = msg->detections[0].pose.pose.pose.position.x;
-    marker_pose_camera_new.pose.position.y = 0; //msg->detections[0].pose.pose.pose.position.y;
-    marker_pose_camera_new.pose.position.z = msg->detections[0].pose.pose.pose.position.z;
-    marker_pose_camera_new.pose.orientation.x = msg->detections[0].pose.pose.pose.orientation.x;
-    marker_pose_camera_new.pose.orientation.y = msg->detections[0].pose.pose.pose.orientation.y;
-    marker_pose_camera_new.pose.orientation.z = msg->detections[0].pose.pose.pose.orientation.z;
-    marker_pose_camera_new.pose.orientation.w = msg->detections[0].pose.pose.pose.orientation.w;
-      
-//    ROS_INFO("marker pose x:%.3f, y:%.3f",
-//    		marker_pose_camera_new.pose.position.x, marker_pose_camera_new.pose.position.z);
 
     marker_pose_vec_.push_back(marker_pose_camera_new);
     if (marker_pose_vec_.size() == MAX_POSE_COUNT)
     {
-      double sum_x = 0.0f;
-      double sum_z = 0.0f;
-      double sum_q_z = 0.0f;
-      double sum_q_w = 0.0f;
-      for (const auto pose : marker_pose_vec_)
-      {
-        sum_x += pose.pose.position.x;
-        sum_z += pose.pose.position.z;
-        sum_q_z += pose.pose.orientation.z;
-        sum_q_w += pose.pose.orientation.w;
-      }
-
-      double avg_x = sum_x / MAX_POSE_COUNT;
-      double avg_z = sum_z / MAX_POSE_COUNT;
-      double avg_q_z = sum_q_z / MAX_POSE_COUNT;
-      double avg_q_w = sum_q_w / MAX_POSE_COUNT;
-
       geometry_msgs::PoseStamped marker_pose_camera_avg;
       marker_pose_camera_avg.header = marker_pose_camera_new.header;
+      vision_servoing::calculateAverage(MAX_POSE_COUNT, marker_pose_vec_, marker_pose_camera_avg);
 
-      // Mod by Tim:
-      //marker_pose_camera_avg.header.frame_id = tf_frame_mod;
 
-      // marker_pose_camera_avg.header.stamp = ros::Time::now();
-      marker_pose_camera_avg.pose.position.x = avg_x;
-      marker_pose_camera_avg.pose.position.z = avg_z;
-      marker_pose_camera_avg.pose.orientation.z = avg_q_z;
-      marker_pose_camera_avg.pose.orientation.w = avg_q_w;
-
-      ROS_INFO("	marker pose (camera frame) x:%.3f, y:%.3f, %s",
-          marker_pose_camera_avg.pose.position.x, marker_pose_camera_avg.pose.position.z, marker_pose_camera_avg.header.frame_id.c_str());
-
-      if (fabs(marker_pose_camera_avg.pose.position.x - marker_pose_camera_.pose.position.x) > 0.2f || 
-          fabs(marker_pose_camera_avg.pose.position.z - marker_pose_camera_.pose.position.z) > 0.2f || 
-          fabs(marker_pose_camera_avg.pose.orientation.z - marker_pose_camera_.pose.orientation.z) > 0.1f ||
-          fabs(marker_pose_camera_avg.pose.orientation.w - marker_pose_camera_.pose.orientation.w) > 0.1f)
+      if (vision_servoing::isNotWithinRange(marker_pose_camera_avg, marker_pose_camera_))
       {
 #if DEBUG_VS
         ROS_INFO("1) Update goal...");
@@ -198,7 +98,7 @@ bool sendGoal(const geometry_msgs::PoseStamped& nav_goal_pose)
         {
           // Mod by Tim:
           //buffer_.transform(marker_pose_camera_avg, marker_pose_map_, target_frame_);
-          ROS_INFO("	1:%s 2:%s ", marker_pose_camera_avg.header.frame_id.c_str() ,marker_pose_map_.header.frame_id.c_str());
+          //ROS_INFO("	1:%s 2:%s ", marker_pose_camera_avg.header.frame_id.c_str() ,marker_pose_map_.header.frame_id.c_str());
           //buffer_.transform(marker_pose_camera_avg, marker_pose_map_, tf_frame_mod);
           buffer_.transform(marker_pose_camera_avg, marker_pose_map_, "map");
 
@@ -214,12 +114,7 @@ bool sendGoal(const geometry_msgs::PoseStamped& nav_goal_pose)
         }
 
         // Use yaw from tf_echo tools
-        tf2::Quaternion q(
-              tf.transform.rotation.x,
-              tf.transform.rotation.y,
-              tf.transform.rotation.z,
-              tf.transform.rotation.w 
-            ); 
+        tf2::Quaternion q(tf.transform.rotation.x,tf.transform.rotation.y,tf.transform.rotation.z,tf.transform.rotation.w);
 
         tf2::Matrix3x3 m(q);
         double roll, pitch, yaw;
@@ -246,12 +141,20 @@ bool sendGoal(const geometry_msgs::PoseStamped& nav_goal_pose)
             fabs(nav_goal_pose.pose.position.y - nav_goal_pose_.pose.position.y) > 0.2 )
         {
 #if DEBUG_VS
-        ROS_INFO("1a) Publishing goal...");
+        ROS_INFO("1a) Goal changed, publishing goal...");
 #endif
           //nav_goal_pub_.publish(nav_goal_pose);
-          sendGoal(nav_goal_pose);
+          vision_servoing::sendGoal(nav_goal_pose, stagingGoalReached);
         }
         marker_pose_camera_ = marker_pose_camera_avg;
+      }
+      else if((!vision_servoing::isNotWithinRange(marker_pose_camera_avg, marker_pose_camera_)) && stagingGoalReached)
+      {
+#if DEBUG_VS
+        ROS_INFO("1b) Goal reached, sending steeering cmds...");
+#endif
+
+
       }
 
     }
@@ -271,8 +174,16 @@ private:
   //ros::Publisher nav_goal_pub_;
 
   double offset_x_, offset_z_, offset_yaw_;
+
+  // Mod by Tim:
+  double pixelPosRight;
+  double pixelPosDown;
+  double tagArea;
+  bool stagingGoalReached;
 };
 
+
+//-------------------------------------------------------------
 int main(int argc, char* argv[])
 {
   ros::init(argc, argv, "vision_servoing_2phase");

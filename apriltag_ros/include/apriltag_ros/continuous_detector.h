@@ -75,6 +75,9 @@ class ContinuousDetector: public nodelet::Nodelet
 
   // Mod by Tim:
   sensor_msgs::CameraInfoPtr camera_info_mod_ptr;
+  double pixelPosRight;
+  double pixelPosDown;
+  double tagArea;
 };
 
 } // namespace apriltag_ros

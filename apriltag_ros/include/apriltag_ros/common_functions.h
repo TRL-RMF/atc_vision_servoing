@@ -70,6 +70,7 @@
 namespace apriltag_ros
 {
 
+//----------------------------------------------------------------------------
 template<typename T>
 T getAprilTagOption(ros::NodeHandle& pnh,
                     const std::string& param_name, const T & default_val)
@@ -79,6 +80,7 @@ T getAprilTagOption(ros::NodeHandle& pnh,
   return param_val;
 }
 
+//----------------------------------------------------------------------------
 // Stores the properties of a tag member of a bundle
 struct TagBundleMember
 {
@@ -87,6 +89,7 @@ struct TagBundleMember
   cv::Matx44d T_oi; // Rigid transform from tag i frame to bundle origin frame
 };
 
+//----------------------------------------------------------------------------
 class StandaloneTagDescription
 {
  public:
@@ -95,19 +98,25 @@ class StandaloneTagDescription
                            std::string &frame_name) :
       id_(id),
       size_(size),
-      frame_name_(frame_name) {}
+      frame_name_(frame_name), pixelPosRight(0.5), pixelPosDown(0.5) {}
 
   double size() { return size_; }
   int id() { return id_; }
   std::string& frame_name() { return frame_name_; }
+
+  void setPixelPos(const double& pxPosRight, const double& pxPosDown) {pixelPosRight = pxPosRight; pixelPosDown = pxPosDown;}
 
  private:
   // Tag description
   int id_;
   double size_;
   std::string frame_name_;
+
+  // Mod by Tim:
+  double pixelPosRight, pixelPosDown;
 };
 
+//----------------------------------------------------------------------------
 class TagBundleDescription
 {
  public:
@@ -152,6 +161,8 @@ class TagBundleDescription
   std::vector<TagBundleMember > tags_;
 };
 
+
+//----------------------------------------------------------------------------
 class TagDetector
 {
  private:
@@ -211,7 +222,9 @@ class TagDetector
   // Detect tags in an image
   AprilTagDetectionArray detectTags(
       const cv_bridge::CvImagePtr& image,
-      const sensor_msgs::CameraInfoConstPtr& camera_info);
+      const sensor_msgs::CameraInfoConstPtr& camera_info,
+	  // Mod by Tim:
+	  double& pixelPosRight, double& pixelPosDown, double& tagArea);
 
   // Get the pose of the tag in the camera frame
   // Returns homogeneous transformation matrix [R,t;[0 0 0 1]] which
@@ -226,7 +239,11 @@ class TagDetector
       double fx, double fy, double cx, double cy) const;
   
   void addImagePoints(apriltag_detection_t *detection,
-                      std::vector<cv::Point2d >& imagePoints) const;
+                      std::vector<cv::Point2d >& imagePoints,
+					  // Mod by Tim:
+					  double& pixelPosRight, double& pixelPosDown, double& tagArea) const;
+
+
   void addObjectPoints(double s, cv::Matx44d T_oi,
                        std::vector<cv::Point3d >& objectPoints) const;
 

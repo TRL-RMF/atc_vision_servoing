@@ -37,6 +37,8 @@ PLUGINLIB_EXPORT_CLASS(apriltag_ros::ContinuousDetector, nodelet::Nodelet);
 
 namespace apriltag_ros
 {
+
+//------------------------------------------------------------------------------
 void ContinuousDetector::onInit ()
 {
   ros::NodeHandle& nh = getNodeHandle();
@@ -56,8 +58,14 @@ void ContinuousDetector::onInit ()
   {
     tag_detections_image_publisher_ = it_->advertise("tag_detections_image", 1);
   }
+
+  pixelPosRight = 0.5;
+  pixelPosDown = 0.5;
+  tagArea = 0.0;
 }
 
+
+//------------------------------------------------------------------------------
 void ContinuousDetector::imageCallback (
     const sensor_msgs::ImageConstPtr& image_rect,
     const sensor_msgs::CameraInfoConstPtr& camera_info)
@@ -95,7 +103,7 @@ void ContinuousDetector::imageCallback (
   // Mod by Tim:
   // Publish detected tags in the image by AprilTag 2
   //tag_detections_publisher_.publish(tag_detector_->detectTags(cv_image_, camera_info));
-  tag_detections_publisher_.publish(tag_detector_->detectTags(cv_image_, camera_info_mod_ptr));
+  tag_detections_publisher_.publish(tag_detector_->detectTags(cv_image_, camera_info_mod_ptr, pixelPosRight, pixelPosDown, tagArea));
   //tag_detections_publisher_.publish(tag_detector_->detectTags(cv_image_, (boost::shared_ptr< ::sensor_msgs::CameraInfo const>)&camera_info_mod));
 
   // Publish the camera image overlaid by outlines of the detected tags and

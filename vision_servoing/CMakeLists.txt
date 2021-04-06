@@ -138,7 +138,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_apriltag src/vision_servoing_apriltag.cpp)
 add_executable(${PROJECT_NAME}_trolley src/vision_servoing_trolley.cpp)
-add_executable(${PROJECT_NAME}_2phase src/vision_servoing_2phase.cpp)
+add_executable(${PROJECT_NAME}_2phase src/vision_servoing_2phase.cpp  src/vision_servoing_utils.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
