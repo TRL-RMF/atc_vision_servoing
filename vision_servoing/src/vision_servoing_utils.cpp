@@ -5,7 +5,7 @@
  *      Author: timityjoe
  */
 
-#include "vision_servoing_utils.h"
+#include "vision_servoing/vision_servoing_utils.h"
 
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -26,12 +26,15 @@ namespace vision_servoing {
 //--------------------------------------------------------------------------------
 void debugTagMsg(const apriltag_ros::AprilTagDetectionArrayConstPtr& msg, double& pixelPosRight, double& pixelPosDown, double& tagArea)
 {
-#if 1
+#if 0
     ROS_INFO("	debugTagSize() tag id:%i, size:%.2f, pxRight:%.2f, pxDown:%.2f, tagArea:%.2f",
     		msg->detections[0].id[0], msg->detections[0].size[0],
 			msg->detections[0].pixelPosRight, msg->detections[0].pixelPosDown,
 			msg->detections[0].tagArea);
 #endif
+    pixelPosRight = msg->detections[0].pixelPosRight;
+    pixelPosDown = msg->detections[0].pixelPosDown;
+    tagArea = msg->detections[0].tagArea;
 }
 
 //--------------------------------------------------------------------------------

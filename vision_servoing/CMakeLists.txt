@@ -106,11 +106,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES vision_servoing
-#  CATKIN_DEPENDS roscpp
-#  DEPENDS system_lib
+  INCLUDE_DIRS include
+  LIBRARIES ${PROJECT_NAME}
 )
+
 
 ###########
 ## Build ##
@@ -119,14 +118,15 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/vision_servoing.cpp
-# )
+add_library(${PROJECT_NAME} SHARED
+   src/AprilTagServo.cpp src/AprilTagServo2.cpp src/vision_servoing_utils.cpp
+ )
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -136,9 +136,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_apriltag src/vision_servoing_apriltag.cpp)
-add_executable(${PROJECT_NAME}_trolley src/vision_servoing_trolley.cpp)
-add_executable(${PROJECT_NAME}_2phase src/vision_servoing_2phase.cpp  src/vision_servoing_utils.cpp)
+add_executable(${PROJECT_NAME}_2phase src/main_2phase.cpp  src/AprilTagServo.cpp src/vision_servoing_utils.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -151,14 +149,6 @@ add_executable(${PROJECT_NAME}_2phase src/vision_servoing_2phase.cpp  src/vision
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}_apriltag
-  ${catkin_LIBRARIES}
-)
-
-target_link_libraries(${PROJECT_NAME}_trolley
-  ${catkin_LIBRARIES}
-)
-
 target_link_libraries(${PROJECT_NAME}_2phase
   ${catkin_LIBRARIES}
 )
@@ -184,7 +174,7 @@ target_link_libraries(${PROJECT_NAME}_2phase
 
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
-install(TARGETS ${PROJECT_NAME}_2phase ${PROJECT_NAME}_apriltag
+install(TARGETS ${PROJECT_NAME}_2phase
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
@@ -192,12 +182,15 @@ install(TARGETS ${PROJECT_NAME}_2phase ${PROJECT_NAME}_apriltag
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
-## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
+# Tim: Change this filepath to your computer's [rviz_atc_plugins] install path 
+#      (havent figured an elegant way to do this yet)  
+install(TARGETS ${PROJECT_NAME}
+  LIBRARY DESTINATION /media/Data/workspace/free_fleet/client_ws/install/atc_stm/lib)
+
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  PATTERN ".svn" EXCLUDE
+)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
