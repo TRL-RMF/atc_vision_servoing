@@ -17,9 +17,10 @@ geometry_msgs/PoseWithCovarianceStamped pose
 
 # Mod by Tim: Tag pixel position. 
 # Default value should be 0.5 (for center)
-# 						  0.0  for left (or up)
+# 			   0.0  for left (or up)
 #                         1.0  for right (down)
-# Tag Area, when near ~4,000-166,000
+# Tag Area, when near ~4,000-166,000 (15cm)
+# Tag Area, when near ~350-209,400 (9.6cm)
 float64 pixelPosRight
 float64 pixelPosDown
 float64 tagArea
