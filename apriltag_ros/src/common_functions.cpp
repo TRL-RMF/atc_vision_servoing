@@ -653,14 +653,20 @@ void TagDetector::drawDetections (cv_bridge::CvImagePtr image)
     ss << det->id;
     cv::String text = ss.str();
     int fontface = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;
-    double fontscale = 0.5;
+
+    // Mod by Tim:
+    //double fontscale = 0.5;
+    const double fontscale = 5;
+
     int baseline;
     cv::Size textsize = cv::getTextSize(text, fontface,
                                         fontscale, 2, &baseline);
     cv::putText(image->image, text,
                 cv::Point((int)(det->c[0]-textsize.width/2),
                           (int)(det->c[1]+textsize.height/2)),
-                fontface, fontscale, cv::Scalar(0xff, 0x99, 0), 2);
+				// Mod by Tim: Increase text thickness
+                //fontface, fontscale, cv::Scalar(0xff, 0x99, 0), 2);
+				fontface, fontscale, cv::Scalar(0xff, 0x99, 0), 10);
   }
 }
 

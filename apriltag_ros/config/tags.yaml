@@ -1,4 +1,6 @@
 # # Definitions of tags to detect
+# # Reference
+# # http://wiki.ros.org/apriltag_ros/Tutorials/Detection%20in%20a%20video%20stream
 #
 # ## General remarks
 #
@@ -19,7 +21,9 @@
 #   ]
 standalone_tags:
   [
-    {id: 0, size: 0.096, name: ID0}
+    {id: 0, size: 0.096, name: ID0},
+    {id: 1, size: 0.096, name: ID1},
+    {id: 22, size: 0.096, name: ID22}
   ]
 
 # ## Tag bundle definitions
