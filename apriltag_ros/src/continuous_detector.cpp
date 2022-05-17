@@ -46,7 +46,7 @@ void ContinuousDetector::onInit ()
 
   tag_detector_ = std::shared_ptr<TagDetector>(new TagDetector(pnh));
   draw_tag_detections_image_ = getAprilTagOption<bool>(pnh, "publish_tag_detections_image", false);
-  it_ = std::shared_ptr<image_transport::ImageTransport>( new image_transport::ImageTransport(nh));
+  it_ = std::shared_ptr<image_transport::ImageTransport>(new image_transport::ImageTransport(nh));
 
   // Mod by Tim:
   camera_info_mod_ptr = boost::shared_ptr< ::sensor_msgs::CameraInfo >(new sensor_msgs::CameraInfo);
@@ -97,7 +97,7 @@ void ContinuousDetector::imageCallback (
   //sensor_msgs::CameraInfo camera_info_mod(*camera_info);
   (*camera_info_mod_ptr) = (*camera_info);
   camera_info_mod_ptr->header = camera_info->header;
-  camera_info_mod_ptr->header.frame_id = "caato_0/d435_color_optical_frame";
+  camera_info_mod_ptr->header.frame_id = "d435_color_optical_frame";
   //ROS_INFO("ContinuousDetector::imageCallback - %s", camera_info_mod.header.frame_id.c_str());
 
   // Mod by Tim:
