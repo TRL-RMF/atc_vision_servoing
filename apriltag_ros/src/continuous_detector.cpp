@@ -97,6 +97,10 @@ void ContinuousDetector::imageCallback (
   //sensor_msgs::CameraInfo camera_info_mod(*camera_info);
   (*camera_info_mod_ptr) = (*camera_info);
   camera_info_mod_ptr->header = camera_info->header;
+
+  // Mod by Tim (25th July 2022)- Prevent "Lookup would require extrapolation into the past" errors
+  camera_info_mod_ptr->header.stamp = ros::Time::now();
+
   camera_info_mod_ptr->header.frame_id = "d435_color_optical_frame";
   //ROS_INFO("ContinuousDetector::imageCallback - %s", camera_info_mod.header.frame_id.c_str());
 
